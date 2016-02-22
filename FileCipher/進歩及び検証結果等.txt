@@ -1,0 +1,75 @@
+﻿2016/02/20
+これを作成。
+
+2月～
+
+21日
+・相も変わらずListViewの画像表示方法は見つからず。　いや出すには出せたのだが
+　SelectList.Items.Add(new { Image = img.Source, ImageName = item.Split('\\')[item.Split('\\').Length - 1] });
+　で匿名クラスをその場で作成して追加してやればBindingで2つのフィールド変数を掴んでくれるみたいだった。
+　けどその後取り出すので一苦労だからやっぱり匿名クラスより定義してあるクラスで取り出したいので
+　その方法はボツになりクラスを定義(ImageListクラス)して追加したが
+　そうすると表示されなくなり、どうしようもない状態ですでに2時57分になっている。
+
+　腹減った。
+
+クリップ
+<ListView.ItemTemplate>
+                <DataTemplate DataType="{x:Type local:ImageList}">
+                    <WrapPanel>
+                        <Label  Content="{Binding ImageName}"/>
+                        <Image Width="30" Height="30" Source="{Binding Image}"/>
+                    </WrapPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+
+拾ってきたやつを一部変更して使えるようにしたはいいが結局使わなくなった悲しいメソッド群
+private FileStream returnFileStream(FileMode file)
+        {
+
+            String cPath = Directory.GetCurrentDirectory();
+            if (Directory.GetDirectories(@".", "files", SearchOption.AllDirectories).Count() == 0)
+            {
+                Directory.CreateDirectory("files");
+            }
+            return new FileStream(Directory.GetCurrentDirectory() + saveDir + "userInfo.config", file);
+        }
+        private void configSave<T>(T info)
+        {
+
+            using (FileStream fs = returnFileStream(FileMode.Create))
+            {
+                BinaryWriter bw = new BinaryWriter(fs);
+                BinaryFormatter bf = new BinaryFormatter();
+
+                bf.Serialize(fs, info);
+                
+                fs.Close();
+            }
+            
+        }
+        private T readConfig<T>()
+        {
+            T info = default(T);
+            using (FileStream fs = returnFileStream(FileMode.OpenOrCreate))
+            {
+                try
+                {
+                    BinaryFormatter bf = new BinaryFormatter();
+
+                    if (fs.Length > 0)
+                    {
+                        info = (T)bf.Deserialize(fs);
+                        fs.Close();
+                        
+                    }
+
+                }
+                catch (Exception e)
+                {
+                    MessageBox.Show(e.StackTrace);
+                }
+                
+                return info;
+            }
+        }

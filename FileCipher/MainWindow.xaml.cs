@@ -17,19 +17,23 @@ using System.Collections.ObjectModel;
 using System.Drawing.Imaging;
 using System.Runtime.Serialization.Formatters.Binary;
 using PassLibrary;
+using System.IO.Compression;
 
 namespace FileCipher
 {
+    public enum ITEM_TYPE { file, folder }
     /// <summary>
     /// MainWindow.xaml の相互作用ロジック
     /// </summary>
     public partial class MainWindow : Window
     {
-        CollectionViewSource view;
-        ObservableCollection<ImageList> imageItems;
+        
+
+        CollectionViewSource encView,decView;
+        ObservableCollection<ImageList> encImageItems,decImageItems;
         private static string encDirPath = @"\enc\";
         private static string decDirPath = @"\dec\";
-        private static string pass = "habelsdfkjmsafaljngsad";
+        private static string pass = "habelsdfkjmsafaljsqfdsgdfdgdfhgfhjghngsad";
         
 
         public MainWindow()
@@ -37,26 +41,80 @@ namespace FileCipher
             InitializeComponent();
             SelectList.AllowDrop = true;
 
-            imageItems = new ObservableCollection<ImageList>();
-            view = new CollectionViewSource();
-            view.Source = imageItems;
-            SelectList.DataContext = view;
+            //encrypt周り
+            encImageItems = new ObservableCollection<ImageList>();
+            encView = new CollectionViewSource();
 
-            //encの確認
+            encView.Source = encImageItems;
+            EncryptionList.DataContext = encView;
 
-            FileStream fs = returnFileStream(FileMode.Create, encDirPath,@".");
-            MessageBox.Show(fs.Name);
+            //decrypt周り
+            decImageItems = new ObservableCollection<ImageList>();
+            decView = new CollectionViewSource();
+
+            decView.Source = decImageItems;
+            SelectList.DataContext = decView;
+
+            //decの確認
+            checkDir(decDirPath);
+
+            //encの確認及び追加
+            checkDir(encDirPath);
+            viewReadItems(encDirPath, encImageItems);
+
+            
+        }
+
+        //指定したディレクトリ下にあるそれぞれの(enc,dec)ファイルを指定したListに追加する
+        private void viewReadItems(string filePath,ObservableCollection<ImageList> list)
+        {
+            
+            string dir = filePath.Split('\\')[1];
+            string[] files = Directory.GetFiles(
+                @"." + filePath, "*."+dir, SearchOption.TopDirectoryOnly);
+            //１つ以上暗号化ファイルが存在するなら　
+            if (files.Count() > 0)
+            {
+                //int num = files.Count();
+                //MessageBox.Show("存在する数:" + files.Count());
+                //存在する暗号化ファイルのフルパスと画像を入れる
+                foreach (var file in files) list.Add(returnImageList(file));
+            }
+
         }
         //encまたはdecのフォルダ(なかったら作る)のFileStreamを返す
-        private FileStream returnFileStream(FileMode fileMode,string file,string currentDir)
+        private void checkDir(string filePath)
         {
-            string dir = file.Split('\\')[1];
+            string dir = filePath.Split('\\')[1];
             String cPath = Directory.GetCurrentDirectory();
-            if (Directory.GetDirectories(currentDir, dir, SearchOption.AllDirectories).Count() == 0)
-            {
+            if (Directory.GetDirectories(@".", "^"+dir+"$", SearchOption.AllDirectories).Count() == 0)
                 Directory.CreateDirectory(dir);
+            
+        }
+        //itemで指定したフルパスの先にあるファイルorフォルダのフルパスと名前と対応するアイコンを追加する。
+        private ImageList returnImageList(string item)
+        {
+            Image img = new Image();
+            ITEM_TYPE type;
+            if (!Directory.Exists(item))
+            {
+                System.Drawing.Icon appIcon = System.Drawing.Icon.ExtractAssociatedIcon(item);
+
+                img.Source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(
+                    appIcon.ToBitmap().GetHbitmap(), IntPtr.Zero, Int32Rect.Empty,
+                    BitmapSizeOptions.FromEmptyOptions());
+                type = ITEM_TYPE.file;
             }
-            return new FileStream(Directory.GetCurrentDirectory()+"\\"+dir, fileMode);
+            else
+            {
+                BitmapImage folIcon = new BitmapImage();
+                MemoryStream data = new MemoryStream(File.ReadAllBytes(@"../../img/folder.png"));
+                WriteableBitmap wbmp = new WriteableBitmap(BitmapFrame.Create(data));
+                data.Close();
+                img.Source = wbmp;
+                type = ITEM_TYPE.folder;
+            }
+            return new ImageList(item, img.Source,type);
         }
 
         //参照元１：http://dobon.net/vb/dotnet/control/draganddrop.html
@@ -77,6 +135,7 @@ namespace FileCipher
 
         private void SelectList_Drop(object sender, DragEventArgs e)
         {
+            
             //()を使った場合はもしその型にキャスト出来なかった場合はInvalidCastExceptionが投げられる。
             //as を使用した場合は変換できなかった時にnullが返ってくる。
             //正直Nullの方がいいので今後はasを多様していく。
@@ -84,35 +143,10 @@ namespace FileCipher
             {
                 //itemにはフルパスが入る。
                 foreach (string item in (string[])e.Data.GetData(DataFormats.FileDrop))
-                {
-                    Image img = new Image();
-                    if (!Directory.Exists(item))
-                    {
-                        System.Drawing.Icon appIcon = System.Drawing.Icon.ExtractAssociatedIcon(item);
-
-                        img.Source = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(
-                            appIcon.ToBitmap().GetHbitmap(), IntPtr.Zero, Int32Rect.Empty,
-                            BitmapSizeOptions.FromEmptyOptions());
-
-                    }
-                    else
-                    {
-                        BitmapImage folIcon = new BitmapImage();
-                        MemoryStream data = new MemoryStream(File.ReadAllBytes(@"../../img/folder.png"));
-                        WriteableBitmap wbmp = new WriteableBitmap(BitmapFrame.Create(data));
-                        data.Close();
-                        img.Source = wbmp;
-                    }
-
-                    ImageList im = new ImageList(item ,img.Source);
-
-                    imageItems.Add(im);
-
-                    
-                }
-                
+                    decImageItems.Add(returnImageList(item));
             }
         }
+        
 
         private void SelectList_PreviewDragOver(object sender, DragEventArgs e)
         {
@@ -123,7 +157,45 @@ namespace FileCipher
         private void Button_Encrypt_Click(object sender, RoutedEventArgs e)
         {
             foreach (ImageList item in SelectList.SelectedItems)
-                PassLibrary.PasswordManager.EncryptFile(item.fullPath, encDirPath + item.MyImageName.Split('.')[0] + ".enc", pass);
+            {
+                /*
+                    fullPathの先にあるものがフォルダだった場合エラー吐く。
+                    なのでフォルダは一度圧縮してそれを暗号化しようと思ってる。
+                    それをどうしようか
+                */
+
+                MessageBox.Show(item.fullPath);
+                if(item.type == ITEM_TYPE.folder)
+                {
+                    //zipをenc下に作って
+                    ZipFile.CreateFromDirectory(item.fullPath, @"." + encDirPath + item.MyImageName + ".zip");
+                    //作ったZipを暗号化して
+                    PassLibrary.PasswordManager.EncryptFile(@"." + encDirPath + item.MyImageName+".zip", @"."
+                    + encDirPath + item.MyImageName + ".zip.enc", pass);
+                    //Zipの残骸を削除
+                    File.Delete(@"." + encDirPath + item.MyImageName + ".zip");
+                }
+                else 
+                    PassLibrary.PasswordManager.EncryptFile(@"." + encDirPath + item.MyImageName, @"."
+                    + encDirPath + item.MyImageName + ".enc", pass);
+
+                viewReadItems(encDirPath, encImageItems);
+            }
+
+        }
+
+        private void EncryptionList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+
+            foreach (ImageList item in EncryptionList.SelectedItems)
+            {
+                MessageBox.Show(item.MyImageName.Substring(0,item.MyImageName.Length - 4));
+                PasswordManager.DecryptFile(item.fullPath, 
+                    @"." + decDirPath + item.MyImageName.Substring(0,item.MyImageName.Length-4), pass);
+            }
+                
+
+            System.Diagnostics.Process.Start("EXPLORER.EXE", @".\dec");
         }
 
         private void Button_Decrypt_Click(object sender, RoutedEventArgs e)

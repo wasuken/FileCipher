@@ -8,7 +8,7 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="350" Width="525">
 
-    <Grid>
+    <Grid Margin="0,0,-8,11">
         <ListView x:Name="SelectList" ItemsSource="{Binding}"
                   ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
                   HorizontalAlignment="Left" Margin="29,56,0,49" 
@@ -27,7 +27,7 @@
         </ListView>
         <ListView x:Name="EncryptionList" HorizontalAlignment="Right" Margin="0,56,20,49" 
                   ItemsSource="{Binding}" ScrollViewer.HorizontalScrollBarVisibility="Disabled" 
-                  Width="172">
+                  Width="172" MouseDoubleClick="EncryptionList_MouseDoubleClick">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <WrapPanel>
@@ -37,8 +37,8 @@
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <Button x:Name="Button_Encrypt" Content="⇨" Margin="236,81,206,204" Click="Button_Encrypt_Click"/>
-        <Button x:Name="Button_Decrypt" Content="⇦" HorizontalAlignment="Left" Margin="236,147,0,0" VerticalAlignment="Top" Width="75" Height="33" Click="Button_Decrypt_Click"/>
+        <Button x:Name="Button_Encrypt" Content="⇨" Margin="236,81,206,178" Click="Button_Encrypt_Click" />
+        <Button x:Name="Button_Decrypt" Content="⇦" Margin="236,164,206,95"  Click="Button_Decrypt_Click" />
 
     </Grid>
 </Window>

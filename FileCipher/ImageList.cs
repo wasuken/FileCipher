@@ -11,15 +11,17 @@ namespace FileCipher
 {
     public struct ImageList
     {
+        public ITEM_TYPE type;
         public string MyImageName { get; set; }
         public ImageSource MyImage { get;set; }
         public string fullPath { set; get; }
-        public ImageList(string fullPath,ImageSource MyImage)
+        public ImageList(string fullPath,ImageSource MyImage,ITEM_TYPE type)
         {
             
             this.MyImage = MyImage;
             this.fullPath = fullPath;
             this.MyImageName = fullPath.Split('\\')[fullPath.Split('\\').Length - 1];
+            this.type = type;
         }
     }
 }
